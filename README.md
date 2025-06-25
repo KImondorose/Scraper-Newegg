@@ -1,12 +1,12 @@
-# Newegg GPU Scraper (Selenium + Excel)
+# Newegg Graphics Card Scraper (Selenium + Excel)
 
-This project is a Python-based web scraper that collects GPU product data from [Newegg.com](https://www.newegg.com) using **Selenium**. It extracts product title, price, shipping info, and product link across multiple pages, and saves them to a clean Excel file.
+This project is a Python-based web scraper that collects graphics card product data from [Newegg.com](https://www.newegg.com) using **Selenium**. It extracts product title, price, shipping info, and product link across multiple pages, and saves them to a clean Excel file.
 
 ---
 
 ## Features
 
-- Scrapes GPU listings from Newegg
+- Scrapes graphics card listings from Newegg
 - Supports scraping multiple result pages
 - Saves data to `newegg_gpus.xlsx`
 - Logs how many items were skipped due to missing info
