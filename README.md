@@ -1,77 +1,67 @@
 # Newegg Graphics Card Scraper (Selenium + Excel)
 
-This project is a Python-based web scraper that collects graphics card product data from [Newegg.com](https://www.newegg.com) using **Selenium**. It extracts product title, price, shipping info, and product link across multiple pages, and saves them to a clean Excel file.
+Collects GPU listings (title, price, shipping, product link, thumbnail) from **Newegg.com**, works around anti-bot measures, and saves the data to **`newegg_gpus.xlsx`**—optionally embedding the product thumbnails directly in the workbook.
 
 ---
 
-## Features
+## Key Features
 
-- Scrapes graphics card listings from Newegg
-- Supports scraping multiple result pages
-- Saves data to `newegg_gpus.xlsx`
-- Logs how many items were skipped due to missing info
-- Uses Selenium to handle JavaScript-rendered content
-
----
-
-## What It Extracts
-
-Each product includes:
-
-- **Title** (product name)
-- **Price** (or `"N/A"` if missing)
-- **Shipping cost** (or `"N/A"` if missing)
-- **Product link**
+| Category        | What it does                                                                                      |
+|-----------------|-------------------------------------------------------------------------------------------------|
+| **Anti-blocking** | • Rotates proxies per page<br>• Spoofs a modern Chrome user-agent<br>• Masks Selenium automation flag (`navigator.webdriver`)<br>• Launches a **fresh browser for every page** to reset cookies/TLS fingerprints<br>• Adds random delays between requests |
+| **Data captured**  | Title · Price · Shipping · Product URL · **Thumbnail URL**                                      |
+| **Excel export**   | Two modes:<br>**① URL-only** (lightweight)<br>**② Embedded thumbnails** via *xlsxwriter*      |
+| **Self-contained** | Installs the right ChromeDriver on first run (`webdriver-manager`)                              |
 
 ---
 
-## Setup Instructions
+## 🔧 How Anti-Blocking Works
 
-### 1. Clone this repository
+| Tactic               | Code Location                         | Benefit                                                                                 |
+|----------------------|-------------------------------------|-----------------------------------------------------------------------------------------|
+| **Proxy rotation**   | `proxy_pool = itertools.cycle(...)` + `build_options(proxy)` | Each request shows up from a new IP, so rate limits reset.                              |
+| **Realistic UA string** | `--user-agent="Mozilla/5.0 … Chrome/126"`               | Removes the default Selenium fingerprint.                                              |
+| **Automation masking** | `--disable-blink-features=AutomationControlled`          | Hides `navigator.webdriver`.                                                           |
+| **Headless-new mode** | `--headless=new`                                            | Modern headless Chrome renders like full Chrome (no “headless” tell-tales).            |
+| **Fresh driver per page** | New `webdriver.Chrome()` inside `for page ...` loop      | Drops cookies + TLS fingerprint between pages.                                         |
+| **Random sleep**     | `time.sleep(random.uniform(MIN_DELAY, MAX_DELAY))`           | Mimics human pacing, avoids burst detection.                                           |
 
-`git clone https://github.com/your-username/newegg-gpu-scraper.git`
-`cd newegg-gpu-scraper`
+---
 
-### 2. Install required packages
-`pip install selenium pandas openpyxl webdriver-manager`
-Alternatively, run, `pip install -r requirements.txt` after adding the `requirements.txt` file to your project folder.
+## How Images Are Stored
 
-## How to Use
-Run the scraper:
-`python newegg.py`
+1. **Thumbnail URL** collected from either `src` or `data-src` attributes.  
+2. URL saved in the `Image_URL` field for every product.  
+3. **If `EMBED_IMAGES = False`**  
+   *The Excel column simply contains the URL text.*  
+4. **If `EMBED_IMAGES = True`**  
+   *The script downloads each thumbnail and uses `xlsxwriter`*  
+   ```python
+   ws.insert_image(row, 4, img_url, {
+       "image_data": io.BytesIO(resp.content),
+       "x_scale": 0.5, "y_scale": 0.5
+   })
+- This embeds a 50%-scaled image directly in the cell; on errors it falls back to writing the URL.
 
-By default, it will:
-- Scrape the **first 3 pages** of Newegg graphics cards listings
-- Save the results to newegg_gpus.xlsx
-- Print a summary to the terminal
+## Quick Start
+### 1. Install dependencies
+pip install selenium webdriver-manager pandas requests xlsxwriter
 
-## Output
-You’ll find a file named:
-`newegg_gpus.xlsx`
+### 2. (Optional) create proxies.txt
+####    One proxy per line:   user:pass@host:port   or   host:port
+echo 123.45.67.89:8080 > proxies.txt
 
-It will contain all scraped results in Excel format.
+### 3. Run the scraper
+python newegg_gpu_scraper.py
 
-## Example Output
-`Scraping page 1: https://www.newegg.com/p/pl?d=graphics+card&page=1`
-`Found 44 item blocks on page 1`
-`Saved 39 items to newegg_gpus.xlsx`
-`Skipped 5 items due to missing or malformed data.`
+### Configuration Flags
+- MAX_PAGES: How many pages to scrape
+- EMBED_IMAGES: True → thumbnails in Excel, False → URL only.
+- HEADLESS:	True - Run Chrome without a GUI.
+- MIN_DELAY, MAX_DELAY- Random sleep range (seconds) between page fetches.
+- PROXY_FILE: "proxies.txt"- File path containing proxy list.
+- EXCEL_FILE: "newegg_gpus.xlsx"- Output workbook name.
 
-## Customize Pages to Scrape
-Inside `newegg.py`, you can modify this line to control how many pages to scrape:
-
-`gpus, skipped = scrape_multiple_pages_newegg_gpus(max_pages=3)`
-
-Change `max_pages=3` to however many pages you want to collect.
-
-## Notes
-- Close `newegg_gpus.xlsx` before running the script again or it may cause a permission error.
-
-- Some products may be skipped if they don’t have title or link (e.g., ads, empty blocks).
-
-- If Newegg changes its website layout or class names, the script will need to be updated.
 
 ## Author
 Made with ❤️ by **Rose Kimondo**
-
-
